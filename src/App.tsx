@@ -1,13 +1,17 @@
 import "@mantine/core/styles.css";
-import { MantineProvider, Box,Button, PinInput, Card as MantineCard, Grid, AspectRatio, Center, Container, AppShell, SimpleGrid } from "@mantine/core";
+import { MantineProvider, Box,Button, PinInput, Card as MantineCard, Grid, AspectRatio, Center, Container, AppShell, SimpleGrid, TextInput } from "@mantine/core";
 import { theme } from "./theme";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NumberFormatValues } from 'react-number-format';
+import { createDebugLogger, createPXEClient, waitForSandbox, PXE, AztecAddress, Contract, AccountWalletWithPrivateKey, getSandboxAccountsWallets } from "@aztec/aztec.js";
+import { format } from 'util';
+import { Numer0nContract } from "./artifacts/Numer0n";
+import { RegisryContract } from "./artifacts/Regisry";
 
 export default function App() {
   return (
     <MantineProvider theme={theme}>    
-      <AppShell   withBorder>
+      <AppShell withBorder>
         <AppShell.Main >
           <Game>
           </Game>
@@ -18,23 +22,79 @@ export default function App() {
 }
 
 function Game() {
+  const [pxe, setPXE] = useState<PXE>();
+  const [playerWallet, setPlayerWallet] = useState<AccountWalletWithPrivateKey>();
+  const [gameID, setGameID] = useState<string>("");
+  const registryAddr = new AztecAddress("0x239a5f10f6b315de7d53fafe718ca522c8172443634b36fc089f639c72b3a690")
+  
+  // Init pxe
+  useEffect(() => {
+    if (pxe) return
+    (async () => {
+      // const logger = createDebugLogger('app');
+
+      // We create PXE client connected to the sandbox URL
+      const pxe = createPXEClient("http://localhost:8080");
+      // Wait for sandbox to be ready
+      await waitForSandbox(pxe)
+      const nodeInfo = await pxe.getNodeInfo();
+      console.log('Aztec Sandbox Info ', nodeInfo);
+      // logger()
+      // format
+      setPXE(pxe)
+    })()
+  }, [pxe]);
+
+  // Use Sandbox Account
+  (async ()=> {
+    if (playerWallet) return
+    if (!pxe) return
+    const [player]: AccountWalletWithPrivateKey[] = await getSandboxAccountsWallets(pxe);
+    setPlayerWallet(player)
+  })()
+
+  async function handleStart() {
+    if (!playerWallet) return
+    const tx= await Numer0nContract.deploy(playerWallet, 100n, playerWallet.getAddress()).send().wait()
+    console.log("contract deployed\naddress: %s\ntxHash:%s", tx.contractAddress , tx.txHash)
+    const registryContract = await RegisryContract.at(registryAddr, playerWallet)
+  }
+
+  async function handleJoin() {
+    
+    // const tx = await Numer0nContract.at(registryAddr, playerWallet)
+  }
+
+
+
   const numLen = 3
   return (
     <>
-      <Container>
+      <Container style={{outline: "1px solid pink"}}>
+        <TextInput
+          onChange={(event) => setGameID(event.currentTarget.value)}
+          value={gameID}
+          placeholder="GameID"
+        />
+        <Button onClick={handleStart}>Start</Button>
+        <Button onClick={handleJoin}>Join</Button>
         <SimpleGrid cols={2}>
-          <PlayerBoard numLen={numLen}></PlayerBoard>
+          <PlayerBoard numLen={numLen} wallet={playerWallet}></PlayerBoard>
           <EnemyBoard numLen={numLen}></EnemyBoard> 
         </SimpleGrid>
+        <Call numLen={numLen} pxe={pxe}/>
       </Container>
+      {/* <Container>
+        <Call numLen={numLen} nums={callingNums}/>
+      </Container> */}
     </>
   )
 }
 
-function PlayerBoard({numLen}) {
+function PlayerBoard({numLen, wallet}) {
   return (
     <>
-      <Player numLen={numLen}/>
+      <Player numLen={numLen} wallet={wallet}/>
     </>
   )
 }
@@ -47,10 +107,10 @@ function EnemyBoard({numLen}) {
   )
 }
 
-function Player ({numLen}: {numLen: number}) {
+function Player ({numLen, wallet}: {numLen: number, wallet: AccountWalletWithPrivateKey}) {
   const [nums,setNums] = useState<number[]>(Array(numLen).fill(null))
   const [isInit,setIsInit] = useState(false)
-  console.log(nums)
+  // console.log(nums)
 
   function handleSetNum(i: number) {
     return (num: number|string) => {
@@ -124,24 +184,54 @@ function Card({
   )
 }
 
-
-
 function Call({
+  numLen,
+  pxe
 }) {
+
+  const [input,setInput] = useState<string>()
+  // const [input,setInput] = useState<string>()
+  // console.log(input)
 
   // function isValidNum(newNum: NumberFormatValues) {
   //   return  Number(newNum.value) >= 0 && Number(newNum.value) <= 9
   // }
+  function handleInput(input: string) {
+    const nums = input.split("").map(Number);
+    // dup check
+    if (nums.length !== new Set(nums).size) return
+
+    
+  }
+
+  function handleCall() {
+    console.log("scsdcmklvn")
+  }
 
   return (
-    <PinInput 
-      type={/^[0-9]*$/}
-      inputType="number"
-      inputMode="numeric"
-      value={num}
-      disabled={isInit}
-      onChange={onSetNum}
-    />
+    <>
+      <PinInput 
+        type={/^[0-9]*$/}
+        inputType="number"
+        inputMode="numeric"
+        autoFocus={true}
+        value={input}
+        onChange={setInput}
+        length={numLen}
+        radius="md"
+        size="xl"
+        style={{outline: "1px solid purple"}}
+        onComplete={handleInput}
+        // disabled={isInit}
+        // onChange={onSetNum}
+      />
+      <Button
+        variant="filled"
+        onClick={handleCall}
+      >
+        Call
+      </Button>
+    </>
     // <NumberInput
     //   min={0}
     //   max={9}

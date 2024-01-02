@@ -55,15 +55,21 @@ function Game() {
 
   async function handleStart() {
     if (!playerWallet) return
-    const receipt = await Numer0nContract.deploy(playerWallet, 100n, playerWallet.getAddress()).send().wait()
+    const gameID = 100n
+    const receipt = await Numer0nContract.deploy(playerWallet, gameID, playerWallet.getAddress()).send().wait()
     console.log("contract deployed\naddress: %s\ntxHash:%s", receipt.contractAddress , receipt.txHash)
-    const registryContract = await RegisryContract.at(registryAddr, playerWallet)
-    const addGameReceipt = await registryContract.methods.add_game(receipt.contractAddress).send().wait()
-    console.log("add_game\ntxHash: %s",addGameReceipt.txHash)
+    // const registryContract = await RegisryContract.at(registryAddr, playerWallet)
+    // const addGameReceipt = await registryContract.methods.add_game(receipt.contractAddress).send().wait()
+    // console.log("add_game\ntxHash\n%s",JSON.stringify(addGameReceipt))
+    // const count = await registryContract.methods.get_current_count().view()
+    // alert(`gameID: ${gameID}\ncount: ${count}`)
 
   }
 
   async function handleJoin() {
+    // if (!playerWallet) return
+    // const registryContract = await RegisryContract.at(registryAddr, playerWallet)
+    // registryContract.methods.
     
     // const tx = await Numer0nContract.at(registryAddr, playerWallet)
   }

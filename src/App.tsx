@@ -25,7 +25,7 @@ function Game() {
   const [pxe, setPXE] = useState<PXE>();
   const [playerWallet, setPlayerWallet] = useState<AccountWalletWithPrivateKey>();
   const [gameID, setGameID] = useState<string>("");
-  const registryAddr = new AztecAddress("0x239a5f10f6b315de7d53fafe718ca522c8172443634b36fc089f639c72b3a690")
+  const registryAddr = AztecAddress.fromString("0x239a5f10f6b315de7d53fafe718ca522c8172443634b36fc089f639c72b3a690")
   
   // Init pxe
   useEffect(() => {
@@ -55,9 +55,12 @@ function Game() {
 
   async function handleStart() {
     if (!playerWallet) return
-    const tx= await Numer0nContract.deploy(playerWallet, 100n, playerWallet.getAddress()).send().wait()
-    console.log("contract deployed\naddress: %s\ntxHash:%s", tx.contractAddress , tx.txHash)
+    const receipt = await Numer0nContract.deploy(playerWallet, 100n, playerWallet.getAddress()).send().wait()
+    console.log("contract deployed\naddress: %s\ntxHash:%s", receipt.contractAddress , receipt.txHash)
     const registryContract = await RegisryContract.at(registryAddr, playerWallet)
+    const addGameReceipt = await registryContract.methods.add_game(receipt.contractAddress).send().wait()
+    console.log("add_game\ntxHash: %s",addGameReceipt.txHash)
+
   }
 
   async function handleJoin() {
